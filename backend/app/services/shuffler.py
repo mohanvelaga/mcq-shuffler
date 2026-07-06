@@ -4,13 +4,15 @@ from app.services.docx_processor import shuffle_docx
 from app.services.pdf_processor import shuffle_pdf
 
 
-def shuffle_file(input_path: str, output_path: str):
-    extension = Path(input_path).suffix.lower()
+def shuffle_file(input_path, output_path):
 
-    if extension == ".docx":
+    ext = Path(input_path).suffix.lower()
+
+    if ext == ".docx":
         return shuffle_docx(input_path, output_path)
 
-    if extension == ".pdf":
+    elif ext == ".pdf":
         return shuffle_pdf(input_path, output_path)
 
-    raise ValueError(f"Unsupported file type: {extension}")
+    else:
+        raise Exception("Unsupported file type")

@@ -1,36 +1,116 @@
-from pathlib import Path
 import random
+import re
+import fitz  # PyMuPDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
-import fitz
+
+def extract_questions(pdf_path):
+    doc = fitz.open(pdf_path)
+
+    text = ""
+
+    for page in doc:
+        text += page.get_text("text") + "\n"
+
+    return text.splitlines()
 
 
-def shuffle_pdf(input_path: str, output_path: str):
-    input_path = Path(input_path)
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+def parse_questions(lines):
 
-    document = fitz.open(str(input_path))
-    blocks = []
+    questions = []
 
-    for page in document:
-        text = page.get_text().strip()
-        if text:
-            blocks.extend(line for line in text.splitlines() if line.strip())
+    current_question = []
+    current_options = []
 
-    document.close()
+    for line in lines:
 
-    if not blocks:
-        raise ValueError("No text content found in PDF file")
+        line = line.strip()
 
-    random.shuffle(blocks)
+        if not line:
+            continue
 
-    output_document = fitz.open()
-    page = output_document.new_page()
-    page.insert_text((72, 72), "\n".join(blocks), fontsize=11)
-    output_document.save(str(output_path))
-    output_document.close()
+        # New Question
+        if re.match(r'^\d+[\.\)]', line):
+
+            if current_question:
+
+                questions.append({
+                    "question": current_question,
+                    "options": current_options
+                })
+
+            current_question = [line]
+            current_options = []
+
+        # Option
+        elif re.match(r'^[A-Da-d][\.\)]', line):
+
+            current_options.append(line)
+
+        else:
+
+            if current_options:
+                current_options.append(line)
+            else:
+                current_question.append(line)
+
+    if current_question:
+        questions.append({
+            "question": current_question,
+            "options": current_options
+        })
+
+    return questions
+
+
+def write_pdf(questions, output_pdf):
+
+    c = canvas.Canvas(output_pdf, pagesize=A4)
+
+    width, height = A4
+
+    y = height - 50
+
+    for q in questions:
+
+        for line in q["question"]:
+
+            c.drawString(50, y, line)
+
+            y -= 18
+
+        options = q["options"]
+
+        random.shuffle(options)
+
+        for option in options:
+
+            c.drawString(70, y, option)
+
+            y -= 18
+
+        y -= 20
+
+        if y < 80:
+
+            c.showPage()
+
+            y = height - 50
+
+    c.save()
+
+
+def shuffle_pdf(input_pdf, output_pdf):
+
+    lines = extract_questions(input_pdf)
+
+    questions = parse_questions(lines)
+
+    write_pdf(questions, output_pdf)
 
     return {
-        "processed": len(blocks),
-        "output": str(output_path),
+        "status": "success",
+        "questions": len(questions),
+        "output": output_pdf
     }
