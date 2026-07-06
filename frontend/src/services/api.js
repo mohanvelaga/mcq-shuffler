@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export async function uploadFile(file) {
   const formData = new FormData();
@@ -19,7 +20,9 @@ export async function uploadFile(file) {
 export async function processFile(filename) {
   const response = await fetch(`${API_BASE_URL}/process`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ filename }),
   });
 
@@ -31,5 +34,9 @@ export async function processFile(filename) {
 }
 
 export function downloadFile(filename) {
-  window.open(`${API_BASE_URL}/download/${filename}`, "_blank", "noopener,noreferrer");
+  window.open(
+    `${API_BASE_URL}/download/${filename}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
 }
